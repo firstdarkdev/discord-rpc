@@ -87,6 +87,16 @@ tasks.register("buildAll", DefaultTask) {
     group("build")
 }
 
+tasks.register('javadocJar', Jar) {
+    from javadoc
+    setArchiveClassifier('javadoc')
+}
+
+tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allJava
+    setArchiveClassifier('sources')
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -96,6 +106,8 @@ publishing {
             artifact(compileModern) {
                 builtBy compileModern
             }
+            artifact sourcesJar
+            artifact javadocJar
         }
     }
 
@@ -103,3 +115,5 @@ publishing {
         maven orion.getPublishingMaven()
     }
 }
+
+javadoc.enabled = true

@@ -1,9 +1,13 @@
 package dev.firstdark.rpc.connection;
 
 import dev.firstdark.rpc.DiscordRpc;
+import dev.firstdark.rpc.connection.unix.IUnixBackend;
+//#if modernjava
+//$$ import dev.firstdark.rpc.connection.unix.NIOUnixBackend;
+//#else
+import dev.firstdark.rpc.connection.unix.JUnixBackend;
+//#endif
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
-import jnr.unixsocket.UnixSocketAddress;
-import jnr.unixsocket.UnixSocketChannel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -15,7 +19,7 @@ import java.nio.ByteBuffer;
 class UnixConnection extends BaseConnection {
 
     // Linux/Mac uses sockets to communicate with Discord
-    private UnixSocketChannel unixSocket;
+    private IUnixBackend unixBackend;
     private boolean isOpened;
 
     /**
@@ -25,7 +29,11 @@ class UnixConnection extends BaseConnection {
      */
     UnixConnection(DiscordRpc rpc) {
         super(rpc);
-        this.unixSocket = null;
+        //#if modernjava
+        //$$ this.unixBackend = new NIOUnixBackend();
+        //#else
+        this.unixBackend = new JUnixBackend();
+        //#endif
         this.isOpened = false;
     }
 
@@ -36,7 +44,7 @@ class UnixConnection extends BaseConnection {
      */
     @Override
     boolean isOpen() {
-        return isOpened;
+        return this.unixBackend != null && isOpened;
     }
 
     /**
@@ -54,9 +62,7 @@ class UnixConnection extends BaseConnection {
 
         for (int i = 0; i < 10; i++) {
             try {
-                UnixSocketAddress address = new UnixSocketAddress(String.format(pipeName, i));
-                this.unixSocket = UnixSocketChannel.open(address);
-                this.unixSocket.finishConnect();
+                this.unixBackend.openPipe(String.format(pipeName, i));
                 this.isOpened = true;
                 getRpc().printDebug("Connected to IPC pipe %s", String.format(pipeName, i));
                 return true;
@@ -73,18 +79,17 @@ class UnixConnection extends BaseConnection {
      */
     @Override
     void close() {
-        if (!this.isOpened)
+        if (!this.isOpen())
             return;
 
         try {
-            this.unixSocket.close();
+            this.unixBackend.closePipe();
         } catch (IOException e) {
             getRpc().printDebug("Failed to close connection", e);
         }
 
-        this.unixSocket = null;
+        this.unixBackend = null;
         this.isOpened = false;
-
     }
 
     /**
@@ -95,11 +100,11 @@ class UnixConnection extends BaseConnection {
      */
     @Override
     boolean write(byte[] bytes) {
-        if (!this.isOpened)
+        if (!this.isOpen())
             return false;
 
         try {
-            this.unixSocket.write(ByteBuffer.wrap(bytes));
+            this.unixBackend.write(bytes);
             return true;
         } catch (Exception e) {
             getRpc().printDebug("Failed to write packet %s", e);
@@ -120,22 +125,23 @@ class UnixConnection extends BaseConnection {
         if (bytes == null || bytes.length == 0)
             return bytes != null;
 
-        if (!isOpened)
+        if (!isOpen())
             return false;
 
         try {
             if (!wait) {
-                long available = this.unixSocket.socket().getInputStream().available();
+                long available = this.unixBackend.getAvailable();
 
                 if (available < length)
                     return false;
             }
 
-            ByteBuffer buffer = ByteBuffer.allocate(length);
-            int read = this.unixSocket.read(buffer);
+            byte[] buf = new byte[length];
+            int read = this.unixBackend.read(buf);
             if (read != length)
                 throw new IOException("Read less data than supplied. Expected: " + length + ". Got: " + read);
 
+            ByteBuffer buffer = ByteBuffer.wrap(buf);
             buffer.rewind();
             buffer.get(bytes, 0, length);
             return true;

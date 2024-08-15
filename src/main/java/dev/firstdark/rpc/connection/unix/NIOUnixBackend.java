@@ -20,7 +20,7 @@ public class NIOUnixBackend implements IUnixBackend {
     @Override
     public void openPipe(String path) throws IOException {
         //#if modernjava
-        // $$ this.channel = SocketChannel.open(UnixDomainSocketAddress.of(path));
+        //$$ this.channel = SocketChannel.open(UnixDomainSocketAddress.of(path));
         //#else
         this.channel = null;
         //#endif

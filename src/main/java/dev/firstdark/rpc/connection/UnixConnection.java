@@ -64,6 +64,24 @@ class UnixConnection extends BaseConnection {
         if (this.isOpen())
             throw new IllegalStateException("Connection is already opened");
 
+        if (this.tryOpenConnection(pipeName))
+            return true;
+
+        String nextPath = getAdditionalPaths();
+
+        if (nextPath != null && !nextPath.isEmpty() && this.tryOpenConnection(nextPath + "/discord-ipc-%s"))
+            return true;
+
+        throw new NoDiscordClientException();
+    }
+
+    /**
+     * Helper method to try and open an RPC connection
+     *
+     * @param pipeName The pipe base path to try and open
+     * @return True if opened
+     */
+    private boolean tryOpenConnection(String pipeName) {
         for (int i = 0; i < 10; i++) {
             try {
                 this.unixBackend.openPipe(String.format(pipeName, i));
@@ -75,7 +93,7 @@ class UnixConnection extends BaseConnection {
             }
         }
 
-        throw new NoDiscordClientException();
+        return false;
     }
 
     /**
@@ -246,6 +264,24 @@ class UnixConnection extends BaseConnection {
         temp = temp != null ? temp : System.getenv("TEMP");
         temp = temp != null ? temp : "/tmp";
         return temp;
+    }
+
+    /**
+     * Get additional path for Snap and Flatpak versions of discord
+     *
+     * @return Path if found, or null if not
+     */
+    private String getAdditionalPaths() {
+        String[] unixFolderPaths = {"/snap.discord", "/app/com.discordapp.Discord"};
+        String path = "/tmp";
+
+        for (String s : unixFolderPaths) {
+            File f = new File(path, s);
+            if (f.exists() && f.isDirectory() && f.list() != null && f.list().length > 0)
+                return f.getAbsolutePath();
+        }
+
+        return null;
     }
 
     boolean mkdir(String path) {

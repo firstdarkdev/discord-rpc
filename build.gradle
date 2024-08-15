@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id "io.freefair.lombok" version "8.7.1"
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = 'dev.firstdark.discordrpc'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    shade
+    implementation.extendsFrom shade
+}
+
+dependencies {
+    shade 'com.google.code.gson:gson:2.11.0'
+    shade 'org.jetbrains:annotations:24.1.0'
+    shade 'org.slf4j:slf4j-api:2.0.16'
+    shade 'com.github.jnr:jnr-unixsocket:0.38.21'
+
+    runtimeOnly 'ch.qos.logback:logback-classic:1.4.12'
+}
+
+shadowJar {
+    from sourceSets.main.output
+    configurations = [project.configurations.shade]
+
+    setArchiveClassifier('dev-shadow')
+    mergeServiceFiles()
+}
+
+jar.finalizedBy(shadowJar)

@@ -9,8 +9,12 @@ import dev.firstdark.rpc.connection.unix.JUnixBackend;
 //#endif
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * @author HypherionSA
@@ -160,7 +164,63 @@ class UnixConnection extends BaseConnection {
      */
     @Override
     public void register(String applicationId, String command) {
-        // TODO Implement Register
+        String home = System.getenv("HOME");
+
+        if (home == null)
+            throw new RuntimeException("Unable to find user HOME directory");
+
+        if (command == null) {
+            try {
+                command = Files.readSymbolicLink(Paths.get("/proc/self/exe")).toString();
+            } catch (Exception ex) {
+                throw new RuntimeException("Unable to get current exe path from /proc/self/exe", ex);
+            }
+        }
+
+        String desktopFile =
+                "[Desktop Entry]\n" +
+                        "Name=Game " + applicationId + "\n" +
+                        "Exec=" + command + " %%u\n" +
+                        "Type=Application\n" +
+                        "NoDisplay=true\n" +
+                        "Categories=Discord;Games;\n" +
+                        "MimeType=x-scheme-handler/discord-" + applicationId + ";\n";
+
+        String desktopFileName = "/discord-" + applicationId + ".desktop";
+        String desktopFilePath = home + "/.local";
+
+        if (!this.mkdir(desktopFilePath))
+            throw new RuntimeException("Failed to create directory '" + desktopFilePath + "'");
+
+        desktopFilePath += "/share";
+
+        if (!this.mkdir(desktopFilePath))
+            throw new RuntimeException("Failed to create directory '" + desktopFilePath + "'");
+
+        desktopFilePath += "/applications";
+
+        if (!this.mkdir(desktopFilePath))
+            throw new RuntimeException("Failed to create directory '" + desktopFilePath + "'");
+
+        desktopFilePath += desktopFileName;
+
+        try (FileWriter fileWriter = new FileWriter(desktopFilePath)) {
+            fileWriter.write(desktopFile);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to write desktop info into '" + desktopFilePath + "'");
+        }
+
+        String xdgMimeCommand = "xdg-mime default discord-" + applicationId + ".desktop x-scheme-handler/discord-" + applicationId;
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(xdgMimeCommand.split(" "));
+            processBuilder.environment();
+            int result = processBuilder.start().waitFor();
+            if (result < 0)
+                throw new Exception("xdg-mime returned " + result);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to register mime handler", ex);
+        }
     }
 
     /**
@@ -171,7 +231,7 @@ class UnixConnection extends BaseConnection {
      */
     @Override
     public void registerSteamGame(String applicationId, String steamId) {
-        // TODO Implement Steam Register
+        this.register(applicationId, "xdg-open steam://rungameid/" + steamId);
     }
 
     /**
@@ -186,5 +246,10 @@ class UnixConnection extends BaseConnection {
         temp = temp != null ? temp : System.getenv("TEMP");
         temp = temp != null ? temp : "/tmp";
         return temp;
+    }
+
+    boolean mkdir(String path) {
+        File file = new File(path);
+        return file.exists() && file.isDirectory() || file.mkdir();
     }
 }

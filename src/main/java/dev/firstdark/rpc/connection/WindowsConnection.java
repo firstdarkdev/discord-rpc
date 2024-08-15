@@ -3,6 +3,7 @@ package dev.firstdark.rpc.connection;
 import dev.firstdark.rpc.DiscordRpc;
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -150,7 +151,40 @@ class WindowsConnection extends BaseConnection {
      */
     @Override
     public void register(String applicationId, String command) {
-        // TODO Implement Register
+        String javaLibraryPath = System.getProperty("java.home");
+        File javaExeFile = new File(javaLibraryPath.split(";")[0] + "/bin/java.exe");
+        File javawExeFile = new File(javaLibraryPath.split(";")[0] + "/bin/javaw.exe");
+        String javaExePath = javaExeFile.exists() ? javaExeFile.getAbsolutePath() : javawExeFile.exists() ? javawExeFile.getAbsolutePath() : null;
+
+        if (javaExePath == null)
+            throw new RuntimeException("Unable to find java path");
+
+        String openCommand;
+
+        if (command != null)
+            openCommand = command;
+        else
+            openCommand = javaExePath;
+
+        String protocolName = "discord-" + applicationId;
+        String protocolDescription = "URL:Run game " + applicationId + " protocol";
+        String keyName = "Software\\Classes\\" + protocolName;
+        String iconKeyName = keyName + "\\DefaultIcon";
+        String commandKeyName = keyName + "\\DefaultIcon";
+
+        try {
+            WinRegistry.createKey(keyName);
+            WinRegistry.writeStringValue(keyName, "", protocolDescription);
+            WinRegistry.writeStringValue(keyName, "URL Protocol", "\0");
+
+            WinRegistry.createKey(iconKeyName);
+            WinRegistry.writeStringValue(iconKeyName, "", javaExePath);
+
+            WinRegistry.createKey(commandKeyName);
+            WinRegistry.writeStringValue(commandKeyName, "", openCommand);
+        } catch (Exception ex) {
+            throw new RuntimeException("Unable to modify Discord registry keys", ex);
+        }
     }
 
     /**
@@ -161,6 +195,16 @@ class WindowsConnection extends BaseConnection {
      */
     @Override
     public void registerSteamGame(String applicationId, String steamId) {
-        // TODO Implement Steam Register
+        try {
+            String steamPath = WinRegistry.readString();
+            if (steamPath == null)
+                throw new RuntimeException("Steam exe path not found");
+
+            steamPath = steamPath.replaceAll("/", "\\");
+            String command = "\"" + steamPath + "\" steam://rungameid/" + steamId;
+            this.register(applicationId, command);
+        } catch (Exception ex) {
+            throw new RuntimeException("Unable to register Steam game", ex);
+        }
     }
 }

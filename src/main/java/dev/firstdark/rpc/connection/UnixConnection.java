@@ -89,7 +89,7 @@ class UnixConnection extends BaseConnection {
                 getRpc().printDebug("Connected to IPC pipe %s", String.format(pipeName, i));
                 return true;
             } catch (Exception e) {
-                getRpc().printDebug("Failed to connect to pipe %s", e);
+                getRpc().printDebug("Failed to connect to pipe %s", String.format(pipeName, i), e);
             }
         }
 
@@ -273,7 +273,7 @@ class UnixConnection extends BaseConnection {
      */
     private String getAdditionalPaths() {
         String[] unixFolderPaths = {"/snap.discord", "/app/com.discordapp.Discord"};
-        String path = "/tmp";
+        String path = getTempPath();
 
         for (String s : unixFolderPaths) {
             File f = new File(path, s);

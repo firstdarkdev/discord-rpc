@@ -7,6 +7,7 @@ import dev.firstdark.rpc.connection.RPCConnection;
 import dev.firstdark.rpc.enums.DiscordReply;
 import dev.firstdark.rpc.enums.ErrorCode;
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
+import dev.firstdark.rpc.exceptions.PipeAccessDenied;
 import dev.firstdark.rpc.exceptions.UnsupportedOsType;
 import dev.firstdark.rpc.handlers.DiscordEventHandler;
 import dev.firstdark.rpc.models.DiscordJoinRequest;
@@ -15,7 +16,6 @@ import dev.firstdark.rpc.models.User;
 import dev.firstdark.rpc.utils.Backoff;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -135,7 +135,7 @@ public class DiscordRpc {
      * @param autoRegister Should the current game automatically be registered with Discord
      * @throws UnsupportedOsType Thrown when the Current OS is not supported
      */
-    public void init(@NotNull String applicationId, @Nullable DiscordEventHandler handler, boolean autoRegister) throws UnsupportedOsType {
+    public void init(@NotNull String applicationId, @Nullable DiscordEventHandler handler, boolean autoRegister) throws UnsupportedOsType, PipeAccessDenied {
         this.init(applicationId, handler, autoRegister, null);
     }
 
@@ -148,7 +148,7 @@ public class DiscordRpc {
      * @param optionalSteamId The Steam ID of the game that the RPC is tied to
      * @throws UnsupportedOsType Thrown when the Current OS is not supported
      */
-    public void init(@NotNull String applicationId, @Nullable DiscordEventHandler handler, boolean autoRegister, @Nullable String optionalSteamId) throws UnsupportedOsType {
+    public void init(@NotNull String applicationId, @Nullable DiscordEventHandler handler, boolean autoRegister, @Nullable String optionalSteamId) throws UnsupportedOsType, PipeAccessDenied {
         if (this.rpcConnection != null)
             return;
 
@@ -344,7 +344,7 @@ public class DiscordRpc {
     /**
      * The internal thread that takes care of updating the connection and callbacks
      */
-    private void discordRpcIo() throws NoDiscordClientException {
+    private void discordRpcIo() throws NoDiscordClientException, PipeAccessDenied {
         while (this.keepRunning.get()) {
             this.updateConnection();
             runCallbacks();
@@ -379,7 +379,7 @@ public class DiscordRpc {
     /**
      * Update the state of the Current RPC connection
      */
-    public void updateConnection() throws NoDiscordClientException {
+    public void updateConnection() throws NoDiscordClientException, PipeAccessDenied {
         if (this.rpcConnection == null)
             return;
 

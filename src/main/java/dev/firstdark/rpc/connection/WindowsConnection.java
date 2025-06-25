@@ -2,6 +2,7 @@ package dev.firstdark.rpc.connection;
 
 import dev.firstdark.rpc.DiscordRpc;
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
+import dev.firstdark.rpc.exceptions.PipeAccessDenied;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -46,7 +47,7 @@ class WindowsConnection extends BaseConnection {
      * @throws NoDiscordClientException Thrown when no valid discord client is found
      */
     @Override
-    boolean open() throws NoDiscordClientException {
+    boolean open() throws NoDiscordClientException, PipeAccessDenied {
         String pipeName = "\\\\?\\pipe\\discord-ipc-%s";
 
         if (this.isOpen())
@@ -54,12 +55,21 @@ class WindowsConnection extends BaseConnection {
 
         for (int i = 0; i < 10; i++) {
             try {
+                File test = new File(String.format(pipeName, i));
+                if (!test.exists())
+                    continue;
+
                 this.pipe = new RandomAccessFile(String.format(pipeName, i), "rw");
                 this.opened = true;
                 getRpc().printDebug("Connected to IPC Pipe %s", String.format(pipeName, i));
                 return true;
             } catch (FileNotFoundException e) {
-                getRpc().printDebug("Failed to connect to pipe %s", e);
+                if (e.getMessage().toLowerCase().contains("access is denied")) {
+                    throw new PipeAccessDenied("Cannot access pipe " + String.format(pipeName, i) + " due to permission errors. Ensure discord is NOT running in administrator mode!");
+                } else {
+                    e.printStackTrace();
+                    getRpc().printDebug("Failed to connect to pipe %s", e);
+                }
             } catch (SecurityException sec) {
                 getRpc().getLogger().error("Failed to open RPC Connection, with error Access Denied. Is Discord running in Administrator mode?");
             }

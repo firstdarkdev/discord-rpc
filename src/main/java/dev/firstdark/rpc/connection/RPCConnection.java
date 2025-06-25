@@ -9,6 +9,7 @@ import dev.firstdark.rpc.enums.ErrorCode;
 import dev.firstdark.rpc.enums.OpCode;
 import dev.firstdark.rpc.enums.RPCState;
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
+import dev.firstdark.rpc.exceptions.PipeAccessDenied;
 import dev.firstdark.rpc.exceptions.UnsupportedOsType;
 import dev.firstdark.rpc.handlers.Callbacks;
 import dev.firstdark.rpc.models.MessageFrame;
@@ -124,7 +125,7 @@ public class RPCConnection {
      *
      * @throws NoDiscordClientException No valid discord install was found
      */
-    public void open() throws NoDiscordClientException {
+    public void open() throws NoDiscordClientException, PipeAccessDenied {
         if (this.state == RPCState.CONNECTED)
             return;
 

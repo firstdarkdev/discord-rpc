@@ -3,6 +3,7 @@ package dev.firstdark.rpc.connection;
 import dev.firstdark.rpc.DiscordRpc;
 import dev.firstdark.rpc.enums.OSType;
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
+import dev.firstdark.rpc.exceptions.PipeAccessDenied;
 import dev.firstdark.rpc.exceptions.UnsupportedOsType;
 import dev.firstdark.rpc.utils.OSDetector;
 import lombok.AccessLevel;
@@ -65,7 +66,7 @@ public abstract class BaseConnection {
      *
      * @return True if opened
      */
-    abstract boolean open() throws NoDiscordClientException;
+    abstract boolean open() throws NoDiscordClientException, PipeAccessDenied;
 
     /**
      * Close the current IPC connection.

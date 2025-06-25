@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     id 'java'
     id "io.freefair.lombok" version "8.7.1"
@@ -95,6 +97,42 @@ tasks.register('javadocJar', Jar) {
 tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allJava
     setArchiveClassifier('sources')
+}
+
+tasks.register("testJar", ShadowJar) {
+    from sourceSets.test.output, sourceSets.main.output
+    group("build")
+    setArchiveClassifier("test")
+
+    configurations = [project.configurations.runtimeClasspath]
+
+    // Remove stuff we don't need from the jar
+    exclude("**/DEPENDENCIES*")
+    exclude("**/LICENSE*")
+    exclude("**/Log4J*")
+    exclude("logback.xml")
+    exclude("META-INF/NOTICE*")
+    exclude("META-INF/maven/**")
+    exclude("META-INF/versions/**")
+    exclude("META-INF/native-image/**")
+
+    // Remove unneeded/unsupported platforms
+    exclude("lib/*BSD*/**")
+    exclude("lib/*Sun*/**")
+    exclude("lib/*Window*/**")
+    exclude("lib/aarch64-Linux*/**")
+    exclude("lib/ppc*/**")
+    exclude("lib/risc*/**")
+    exclude("lib/s390x*/**")
+    exclude("lib/arm*/**")
+
+    mergeServiceFiles()
+
+    manifest {
+        attributes(
+                "Main-Class" : "RPCTest"
+        )
+    }
 }
 
 publishing {

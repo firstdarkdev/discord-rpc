@@ -8,17 +8,19 @@ import org.jetbrains.annotations.Nullable;
 /**
  * @author HypherionSA
  *
- * Public facing events that fire during the lifecycle of the Discord RPC
- * Your app/game should implement this if needed
+ * Abstract class for Discord Event handler. Override what you need
  */
-public interface DiscordEventHandler {
+public class RPCEventHandler implements DiscordEventHandler {
 
     /**
      * Fires when the RPC is connected and ready
      *
      * @param user The logged in discord user that is currently active
      */
-    void ready(User user);
+    @Override
+    public void ready(User user) {
+
+    }
 
     /**
      * Called when the RPC connected is terminated
@@ -26,7 +28,10 @@ public interface DiscordEventHandler {
      * @param errorCode The {@link ErrorCode} that was returned
      * @param message The error message that was returned, if any
      */
-    void disconnected(ErrorCode errorCode, @Nullable String message);
+    @Override
+    public void disconnected(ErrorCode errorCode, @Nullable String message) {
+
+    }
 
     /**
      * Called when an error occurs in the RPC connection
@@ -34,27 +39,38 @@ public interface DiscordEventHandler {
      * @param errorCode The {@link ErrorCode} that was returned
      * @param message The error message that was returned, if any
      */
-    void errored(ErrorCode errorCode, @Nullable String message);
+    @Override
+    public void errored(ErrorCode errorCode, @Nullable String message) {
+
+    }
 
     /**
      * Called after a Join Request has been accepted
      *
      * @param joinSecret The password of the session
      */
-    void joinGame(String joinSecret);
+    @Override
+    public void joinGame(String joinSecret) {
+
+    }
 
     /**
      * Called when a Spectate request has been approved
      *
      * @param spectateSecret The password of the session
      */
-    void spectateGame(String spectateSecret);
+    @Override
+    public void spectateGame(String spectateSecret) {
+
+    }
 
     /**
      * Called when someone requests to join/spectate your game
      *
      * @param joinRequest The {@link DiscordJoinRequest} that was sent
      */
-    void joinRequest(DiscordJoinRequest joinRequest);
+    @Override
+    public void joinRequest(DiscordJoinRequest joinRequest) {
 
+    }
 }

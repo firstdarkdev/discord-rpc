@@ -5,6 +5,7 @@
 - [BUG] Fixed Linux Backend not detecting user switching (Modern Jave)
 - [BUG] Fixed Linux Backend ignoring a lot of Discord events (Modern Java)
 - [BUG] Fixed Auto Reconnect not working
+- [FEAT] Added a Dummy RPCEventHandler class to remove the need to implement DiscordEventHandler
 
 **1.0.0.**
 

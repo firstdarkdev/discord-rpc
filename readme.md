@@ -21,6 +21,7 @@ This library has the same features as the original DLL versions, but with notabl
 - 100% pure java
 - Supports Java 8-21
 - Specifically designed for use in Minecraft mods
+- Automatic reconnecting and user switching support
 
 ### Getting Started
 
@@ -59,7 +60,7 @@ Note:
 DiscordRpc rpc = new DiscordRpc();
 rpc.setDebugMode(true);
 
-DiscordEventHandler handler = new DiscordEventHandler() {
+RPCEventHandler handler = new RPCEventHandler() {
     @Override
     public void ready(User user) {
         System.out.println("Ready");
@@ -82,21 +83,6 @@ DiscordEventHandler handler = new DiscordEventHandler() {
     @Override
     public void errored(ErrorCode errorCode, String message) {
         System.out.println("Errored " + errorCode + " - " + message);
-    }
-
-    @Override
-    public void joinGame(String joinSecret) {
-
-    }
-
-    @Override
-    public void spectateGame(String spectateSecret) {
-
-    }
-
-    @Override
-    public void joinRequest(DiscordJoinRequest joinRequest) {
-
     }
 };
 

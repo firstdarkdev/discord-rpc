@@ -8,7 +8,6 @@ import dev.firstdark.rpc.connection.unix.IUnixBackend;
 import dev.firstdark.rpc.connection.unix.JUnixBackend;
 //#endif
 import dev.firstdark.rpc.exceptions.NoDiscordClientException;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,7 +23,6 @@ class UnixConnection extends BaseConnection {
 
     // Linux/Mac uses sockets to communicate with Discord
     private IUnixBackend unixBackend;
-    private boolean isOpened;
 
     /**
      * Create a new instance of a UNIX IPC pipe
@@ -38,7 +36,6 @@ class UnixConnection extends BaseConnection {
         //#else
         this.unixBackend = new JUnixBackend();
         //#endif
-        this.isOpened = false;
     }
 
     /**
@@ -48,7 +45,7 @@ class UnixConnection extends BaseConnection {
      */
     @Override
     boolean isOpen() {
-        return this.unixBackend != null && isOpened;
+        return this.unixBackend != null && this.unixBackend.isConnected();
     }
 
     /**
@@ -84,8 +81,11 @@ class UnixConnection extends BaseConnection {
     private boolean tryOpenConnection(String pipeName) {
         for (int i = 0; i < 10; i++) {
             try {
+                File test = new File(String.format(pipeName, i));
+                if (!test.exists())
+                    continue;
+
                 this.unixBackend.openPipe(String.format(pipeName, i));
-                this.isOpened = true;
                 getRpc().printDebug("Connected to IPC pipe %s", String.format(pipeName, i));
                 return true;
             } catch (Exception e) {
@@ -109,9 +109,6 @@ class UnixConnection extends BaseConnection {
         } catch (IOException e) {
             getRpc().printDebug("Failed to close connection", e);
         }
-
-        this.unixBackend = null;
-        this.isOpened = false;
     }
 
     /**
@@ -139,11 +136,10 @@ class UnixConnection extends BaseConnection {
      *
      * @param bytes The bytes received
      * @param length The length of the data to be read
-     * @param wait Wait for the data to be fully available
      * @return True if successful
      */
     @Override
-    boolean read(byte[] bytes, int length, boolean wait) {
+    boolean read(byte[] bytes, int length) {
         if (bytes == null || bytes.length == 0)
             return bytes != null;
 
@@ -151,12 +147,15 @@ class UnixConnection extends BaseConnection {
             return false;
 
         try {
-            if (!wait) {
-                long available = this.unixBackend.getAvailable();
+            long available = this.unixBackend.getAvailable();
 
-                if (available < length)
-                    return false;
-            }
+            //#if modernjava
+            //$$ if (available == 0)
+            //$$       return false;
+            //#else
+            if (available < length)
+                return false;
+            //#endif
 
             byte[] buf = new byte[length];
             int read = this.unixBackend.read(buf);

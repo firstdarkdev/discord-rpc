@@ -87,10 +87,9 @@ public abstract class BaseConnection {
      *
      * @param bytes The bytes received
      * @param length The length of the data to be read
-     * @param wait Wait for the data to be fully available
      * @return True on success
      */
-    abstract boolean read(byte[] bytes, int length, boolean wait);
+    abstract boolean read(byte[] bytes, int length);
 
     /**
      * Register an application as a Discord application

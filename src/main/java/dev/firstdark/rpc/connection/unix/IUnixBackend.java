@@ -51,4 +51,11 @@ public interface IUnixBackend {
      */
     int read(byte[] bytes) throws IOException;
 
+    /**
+     * Check if the backend implementation is connected or not
+     *
+     * @return True if connected
+     */
+    boolean isConnected();
+
 }

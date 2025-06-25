@@ -4,10 +4,7 @@ import dev.firstdark.rpc.enums.OpCode;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.ByteArrayInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -56,8 +53,7 @@ public class MessageFrame {
      * @return True if the header was processed
      */
     public boolean parseHeader() {
-        try {
-            ByteArrayInputStream inputStream = new ByteArrayInputStream(this.headerBuffer);
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(this.headerBuffer)) {
             this.opCode = OpCode.values()[this.readInt(inputStream)];
             this.length = this.readInt(inputStream);
             return true;

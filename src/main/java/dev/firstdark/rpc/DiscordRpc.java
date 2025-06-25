@@ -76,6 +76,7 @@ public class DiscordRpc {
     private final AtomicBoolean gotErrorMessage;
     private final AtomicBoolean wasJoinGame;
     private final AtomicBoolean wasSpectateGame;
+    private final AtomicBoolean isFirstConnect;
 
     private final Queue<byte[]> sendQueue;
     private final Queue<byte[]> presenceQueue;
@@ -85,6 +86,8 @@ public class DiscordRpc {
     private final Lock waitForIoMutex;
     private final Condition waitForIOActivity;
     private Thread ioThread;
+
+    private int reconnectAttempts = 0;
 
     /**
      * Create a new RPC SDK instance, with the internal thread enabled
@@ -106,7 +109,7 @@ public class DiscordRpc {
         this.nonce = -1;
         this.eventHandler = null;
         this.rpcConnection = null;
-        this.reconnectTimeMs = new Backoff(500L, 60000L);
+        this.reconnectTimeMs = new Backoff(1000L, 60000L);
 
         this.nextConnect = System.currentTimeMillis();
 
@@ -116,6 +119,7 @@ public class DiscordRpc {
         this.gotErrorMessage = new AtomicBoolean(false);
         this.wasJoinGame = new AtomicBoolean(false);
         this.wasSpectateGame = new AtomicBoolean(false);
+        this.isFirstConnect = new AtomicBoolean(true);
 
         this.sendQueue = new ConcurrentLinkedQueue<>();
         this.presenceQueue = new ConcurrentLinkedQueue<>();
@@ -167,7 +171,8 @@ public class DiscordRpc {
         this.rpcConnection.setConnectedCallback((user) -> {
             this.wasJustConnected.set(true);
             this.connectedUser.set(user);
-            this.reconnectTimeMs.reset();
+            this.isFirstConnect.set(false);
+            this.reconnectAttempts = 0;
 
             if (this.eventHandler != null) {
                 this.registerForEvent("ACTIVITY_JOIN");
@@ -338,7 +343,21 @@ public class DiscordRpc {
      * Used to calculate the {@link Backoff} time between requests
      */
     private void updateReconnectTime() {
-        this.nextConnect = System.currentTimeMillis() + this.reconnectTimeMs.nextDelay();
+        int maxReconnectAttempts = 10;
+        if (reconnectAttempts >= maxReconnectAttempts) {
+            this.logger.error("Max reconnect attempts reached. Giving up.");
+            return;
+        }
+
+        long delay = this.reconnectTimeMs.getDelay(reconnectAttempts, maxReconnectAttempts);
+        this.nextConnect = System.currentTimeMillis() + delay;
+
+        if (this.reconnectAttempts == 0) {
+            this.logger.info("Connecting to Discord (Attempt {}/{})", reconnectAttempts, maxReconnectAttempts);
+        } else {
+            this.logger.info("Will retry to connect to Discord in {} (Attempt {}/{})", Backoff.formatDuration(delay), reconnectAttempts, maxReconnectAttempts);
+        }
+        this.reconnectAttempts++;
     }
 
     /**
@@ -346,7 +365,11 @@ public class DiscordRpc {
      */
     private void discordRpcIo() throws NoDiscordClientException, PipeAccessDenied {
         while (this.keepRunning.get()) {
-            this.updateConnection();
+
+            try {
+                this.updateConnection();
+            } catch (NoDiscordClientException ignored) {}
+
             runCallbacks();
             this.waitForIoMutex.lock();
 
@@ -384,15 +407,17 @@ public class DiscordRpc {
             return;
 
         if (!this.rpcConnection.isOpen()) {
-            if (System.currentTimeMillis() >= this.nextConnect) {
-                this.updateReconnectTime();
+            if (this.isFirstConnect.get() || System.currentTimeMillis() >= this.nextConnect) {
                 this.rpcConnection.open();
+
+                if (!this.isFirstConnect.get())
+                    this.updateReconnectTime();
             }
         } else {
             while (true) {
                 JsonObject message = new JsonObject();
 
-                if (!this.rpcConnection.read(message, false))
+                if (!this.rpcConnection.read(message))
                     break;
 
                 String evtName = message.has("evt") && !message.get("evt").isJsonNull() ? message.get("evt").getAsString() : null;

@@ -5,6 +5,8 @@ import java.io.IOException;
 //$$ import java.net.UnixDomainSocketAddress;
 //#endif
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 public class NIOUnixBackend implements IUnixBackend {
@@ -64,7 +66,13 @@ public class NIOUnixBackend implements IUnixBackend {
         if (this.channel == null || !this.channel.isConnected())
             return -1;
 
-        return -1;
+        Selector selector = Selector.open();
+        channel.configureBlocking(false);
+        channel.register(selector, SelectionKey.OP_READ);
+        int ready = selector.selectNow();
+        selector.close();
+        channel.configureBlocking(true);
+        return ready;
     }
 
     /**
@@ -80,5 +88,15 @@ public class NIOUnixBackend implements IUnixBackend {
             return -1;
 
         return this.channel.read(ByteBuffer.wrap(bytes));
+    }
+
+    /**
+     * Check if the backend implementation is connected or not
+     *
+     * @return True if connected
+     */
+    @Override
+    public boolean isConnected() {
+        return this.channel != null && this.channel.isConnected();
     }
 }

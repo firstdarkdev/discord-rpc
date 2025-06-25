@@ -75,4 +75,14 @@ public class JUnixBackend implements IUnixBackend {
 
         return socket.getInputStream().read(bytes);
     }
+
+    /**
+     * Check if the backend implementation is connected or not
+     *
+     * @return True if connected
+     */
+    @Override
+    public boolean isConnected() {
+        return socket != null && socket.isConnected();
+    }
 }

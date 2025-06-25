@@ -92,9 +92,7 @@ class WindowsConnection extends BaseConnection {
             getRpc().printDebug("Failed to close pipe %s", e);
         }
 
-        this.pipe = null;
         this.opened = false;
-
     }
 
     /**
@@ -121,11 +119,10 @@ class WindowsConnection extends BaseConnection {
      *
      * @param bytes The bytes received
      * @param length The length of the data to be read
-     * @param wait Wait for the data to be fully available
      * @return True if successful
      */
     @Override
-    boolean read(byte[] bytes, int length, boolean wait) {
+    boolean read(byte[] bytes, int length) {
         if (bytes == null || bytes.length == 0)
             return bytes != null;
 
@@ -133,11 +130,9 @@ class WindowsConnection extends BaseConnection {
             return false;
 
         try {
-            if (!wait) {
-                long available = this.pipe.length() - this.pipe.getFilePointer();
-                if (available < length)
-                    return false;
-            }
+            long available = this.pipe.length() - this.pipe.getFilePointer();
+            if (available < length)
+                return false;
 
             int read = this.pipe.read(bytes, 0, length);
 

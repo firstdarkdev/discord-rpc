@@ -54,6 +54,7 @@ public class RPCConnection {
     private String lastErrorMessage;
     private RPCState state;
     private final Lock writeLock;
+    private final DiscordRpc rpcClient;
 
     /**
      * Internal method, to set up the RPC api and default values.
@@ -66,6 +67,7 @@ public class RPCConnection {
     private RPCConnection(String applicationId, DiscordRpc rpc) throws UnsupportedOsType {
         this.baseConnection = BaseConnection.createConnection(rpc);
         this.state = RPCState.DISCONNECTED;
+        this.rpcClient = rpc;
 
         this.connectedCallback = null;
         this.disconnectedCallback = null;
@@ -136,7 +138,7 @@ public class RPCConnection {
         if (this.state == RPCState.SENT_HANDSHAKE) {
             JsonObject data = new JsonObject();
 
-            if (this.read(data, true)) {
+            if (this.read(data)) {
                 String cmd = data.has("cmd") && !data.get("cmd").isJsonNull() ? data.get("cmd").getAsString() : null;
                 String evt = data.has("evt") && !data.get("evt").isJsonNull() ? data.get("evt").getAsString() : null;
 
@@ -215,10 +217,9 @@ public class RPCConnection {
      * Convert a data packet to a JSON object, for later use
      *
      * @param jsonObject The JSON object that will be filled with data
-     * @param wait Wait for the packet to be fully received before processing
      * @return True if successful
      */
-    public boolean read(JsonObject jsonObject, boolean wait) {
+    public boolean read(JsonObject jsonObject) {
         if (this.state != RPCState.CONNECTED && this.state != RPCState.SENT_HANDSHAKE)
             return false;
 
@@ -226,7 +227,7 @@ public class RPCConnection {
 
         while (true) {
             // Process the OpCode header
-            boolean didRead = this.baseConnection.read(messageFrame.getHeaderBuffer(), messageFrame.getHeaderBuffer().length, wait);
+            boolean didRead = this.baseConnection.read(messageFrame.getHeaderBuffer(), messageFrame.getHeaderBuffer().length);
             if (!didRead || !messageFrame.parseHeader()) {
                 if (!this.baseConnection.isOpen()) {
                     this.lastErrorCode = ErrorCode.PIPE_CLOSED;
@@ -239,7 +240,7 @@ public class RPCConnection {
 
             // Read the JSON data from the packet
             if (messageFrame.getLength() > 0) {
-                didRead = this.baseConnection.read(messageFrame.getMessageBuffer(), messageFrame.getLength(), true);
+                didRead = this.baseConnection.read(messageFrame.getMessageBuffer(), messageFrame.getLength());
 
                 if (!didRead || !messageFrame.parseMessage()) {
                     this.lastErrorCode = ErrorCode.READ_CORRUPT;
@@ -250,14 +251,19 @@ public class RPCConnection {
                 }
             }
 
+            JsonObject object = GSON.fromJson(messageFrame.getMessage(), JsonObject.class);
+            rpcClient.printDebug("Got Message %s", object.toString());
+
             // Check what OpCode was sent to us
             switch (messageFrame.getOpCode()) {
                 // Connection terminated, so we need to close our client
                 case CLOSE:
-                    JsonObject object = GSON.fromJson(messageFrame.getMessage(), JsonObject.class);
                     object.entrySet().forEach(entry -> jsonObject.add(entry.getKey(), entry.getValue()));
 
                     int error = object.has("code") && !object.get("code").isJsonNull() ? object.get("code").getAsInt() : 0;
+                    if (error == 1000)
+                        error = 4;
+
                     this.lastErrorCode = error >= ErrorCode.values().length ? ErrorCode.UNKNOWN : ErrorCode.values()[error];
                     this.lastErrorMessage = object.has("message") && !object.get("message").isJsonNull() ? object.get("message").getAsString() : "";
                     this.close();
@@ -265,7 +271,6 @@ public class RPCConnection {
 
                 // Generic update update
                 case FRAME:
-                    object = GSON.fromJson(messageFrame.getMessage(), JsonObject.class);
                     object.entrySet().forEach(entry -> jsonObject.add(entry.getKey(), entry.getValue()));
                     return true;
 

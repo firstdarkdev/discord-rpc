@@ -18,8 +18,14 @@ public class JUnixBackend implements IUnixBackend {
      */
     @Override
     public void openPipe(String path) throws IOException {
-        this.socket = AFUNIXSocket.newInstance();
-        this.socket.connect(AFUNIXSocketAddress.of(new File(path)));
+        AFUNIXSocket socket = AFUNIXSocket.newInstance();
+        try {
+            socket.connect(AFUNIXSocketAddress.of(new File(path)));
+            this.socket = socket;
+        } catch (IOException e) {
+            socket.close();
+            throw e;
+        }
     }
 
     /**

@@ -67,12 +67,20 @@ public class NIOUnixBackend implements IUnixBackend {
             return -1;
 
         Selector selector = Selector.open();
-        channel.configureBlocking(false);
-        channel.register(selector, SelectionKey.OP_READ);
-        int ready = selector.selectNow();
-        selector.close();
-        channel.configureBlocking(true);
-        return ready;
+        try {
+            channel.configureBlocking(false);
+            channel.register(selector, SelectionKey.OP_READ);
+            return selector.selectNow();
+        } finally {
+            selector.close();
+            try {
+                if (channel.isOpen()) {
+                    channel.configureBlocking(true);
+                }
+            } catch (IOException ignored) {
+                // Channel can be prematurely closed if an exception is thrown in the first try block
+            }
+        }
     }
 
     /**

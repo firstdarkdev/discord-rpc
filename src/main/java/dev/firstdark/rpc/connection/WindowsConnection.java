@@ -8,6 +8,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 
 /**
  * @author HypherionSA
@@ -48,18 +51,19 @@ class WindowsConnection extends BaseConnection {
      */
     @Override
     boolean open() throws NoDiscordClientException, PipeAccessDenied {
-        String pipeName = "\\\\?\\pipe\\discord-ipc-%s";
+        String pipeName = "\\\\.\\pipe\\discord-ipc-%d";
 
         if (this.isOpen())
             throw new IllegalStateException("Connection is already opened");
 
         for (int i = 0; i < 10; i++) {
+            String pipePath = String.format(pipeName, i);
+
             try {
-                File test = new File(String.format(pipeName, i));
-                if (!test.exists())
+                if (!new File(pipePath).exists())
                     continue;
 
-                this.pipe = new RandomAccessFile(String.format(pipeName, i), "rw");
+                this.pipe = new RandomAccessFile(pipePath, "rw");
                 this.opened = true;
                 getRpc().printDebug("Connected to IPC Pipe %s", String.format(pipeName, i));
                 return true;

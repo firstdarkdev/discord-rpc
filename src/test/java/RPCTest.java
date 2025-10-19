@@ -61,7 +61,7 @@ public class RPCTest {
         };
 
         rpc.init("1000773209924317265", handler, false);
-        //scheduledExecutorService.scheduleAtFixedRate(rpc::runCallbacks, 0, 500, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(rpc::runCallbacks, 0, 500, TimeUnit.MILLISECONDS);
     }
 
 }

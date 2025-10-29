@@ -1,6 +1,7 @@
 import dev.firstdark.rpc.DiscordRpc;
 import dev.firstdark.rpc.enums.ActivityType;
 import dev.firstdark.rpc.enums.ErrorCode;
+import dev.firstdark.rpc.enums.StatusDisplayType;
 import dev.firstdark.rpc.exceptions.UnsupportedOsType;
 import dev.firstdark.rpc.handlers.DiscordEventHandler;
 import dev.firstdark.rpc.models.DiscordJoinRequest;
@@ -24,9 +25,16 @@ public class RPCTest {
             public void ready(User user) {
                 System.out.println("Ready");
                 DiscordRichPresence presence = DiscordRichPresence.builder()
+                        .name("Hello World Name Test")
                         .details("Hello World")
+                        .detailsUrl("https://curseforge.com")
                         .largeImageKey("gear")
-                        .activityType(ActivityType.WATCHING)
+                        .largeUrl("https://firstdark.dev")
+                        .state("Rpc Testing")
+                        .stateUrl("https://modrinth.com")
+                        .statusDisplayType(StatusDisplayType.STATE)
+                        .smallUrl("https://nightbloom.cc")
+                        .activityType(ActivityType.PLAYING)
                         .button(DiscordRichPresence.RPCButton.of("Test", "https://google.com"))
                         .build();
 

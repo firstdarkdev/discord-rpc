@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import dev.firstdark.rpc.enums.ActivityType;
 import dev.firstdark.rpc.enums.PartyPrivacy;
+import dev.firstdark.rpc.enums.StatusDisplayType;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 @Getter
 public class DiscordRichPresence {
 
+    private String name;
     private String state;
     private String details;
     private long startTimestamp;
@@ -40,11 +42,20 @@ public class DiscordRichPresence {
     private String spectateSecret;
     private boolean instance;
 
+    // Urls
+    private String stateUrl;
+    private String detailsUrl;
+    private String largeUrl;
+    private String smallUrl;
+
     @Builder.Default
     private PartyPrivacy privacy = PartyPrivacy.PRIVATE;
 
     @Builder.Default
     private ActivityType activityType = ActivityType.PLAYING;
+
+    @Builder.Default
+    private StatusDisplayType statusDisplayType = StatusDisplayType.NAME;
 
     @Singular
     private List<RPCButton> buttons = new ArrayList<>();
@@ -88,13 +99,28 @@ public class DiscordRichPresence {
 
         JsonObject activity = new JsonObject();
 
+        // Set the name
+        if (isNotNullOrEmpty(name))
+            activity.addProperty("name", name);
+
+        // Display Type
+        activity.addProperty("status_display_type", statusDisplayType.getId());
+
         // Check if the STATE value is set
-        if (isNotNullOrEmpty(state))
+        if (isNotNullOrEmpty(state)) {
             activity.addProperty("state", state);
 
+            if (isNotNullOrEmpty(stateUrl))
+                activity.addProperty("state_url", stateUrl);
+        }
+
         // Check if the DETAILS value is set
-        if (isNotNullOrEmpty(details))
+        if (isNotNullOrEmpty(details)) {
             activity.addProperty("details", details);
+
+            if (isNotNullOrEmpty(detailsUrl))
+                activity.addProperty("details_url", detailsUrl);
+        }
 
         // Check if the timestamps are set and need to be sent
         if (this.startTimestamp != 0 || this.endTimestamp != 0) {
@@ -113,14 +139,22 @@ public class DiscordRichPresence {
         if (isNotNullOrEmpty(largeImageKey) || isNotNullOrEmpty(largeImageText) || isNotNullOrEmpty(smallImageKey) || isNotNullOrEmpty(smallImageText)) {
             JsonObject assets = new JsonObject();
 
-            if (isNotNullOrEmpty(largeImageKey))
+            if (isNotNullOrEmpty(largeImageKey)) {
                 assets.addProperty("large_image", this.largeImageKey);
+
+                if (isNotNullOrEmpty(largeUrl))
+                    assets.addProperty("large_url", largeUrl);
+            }
 
             if (isNotNullOrEmpty(largeImageText))
                 assets.addProperty("large_text", this.largeImageText);
 
-            if (isNotNullOrEmpty(smallImageKey))
+            if (isNotNullOrEmpty(smallImageKey)) {
                 assets.addProperty("small_image", this.smallImageKey);
+
+                if (isNotNullOrEmpty(smallUrl))
+                    assets.addProperty("small_url", smallUrl);
+            }
 
             if (isNotNullOrEmpty(smallImageText))
                 assets.addProperty("small_text", this.smallImageText);

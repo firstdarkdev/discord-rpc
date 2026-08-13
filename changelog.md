@@ -1,3 +1,7 @@
+**1.0.5**
+
+- [BUG] Fix legacy jar requiring java 16 to work
+
 **1.0.4**
 
 - [FEAT] Add support for new RPC activity details

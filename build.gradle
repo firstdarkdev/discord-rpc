@@ -38,8 +38,29 @@ dependencies {
     runtimeOnly "ch.qos.logback:logback-classic:${logback}"
 }
 
-shadowJar {
-    from sourceSets.main.output
+tasks.register("compileLegacyJava", JavaCompile) {
+    source = sourceSets.main.java
+
+    classpath = sourceSets.main.compileClasspath
+    options.annotationProcessorPath = configurations.annotationProcessor
+    destinationDirectory.set(layout.buildDirectory.dir("classes/java/legacy"))
+    options.release.set(8)
+}
+
+tasks.register("compileModernJava", JavaCompile) {
+    preprocess.vars.put("modernjava", "1")
+    dependsOn(tasks.named("preprocessJava"))
+    source = tasks.named("preprocessJava")
+
+    classpath = sourceSets.main.compileClasspath
+    options.annotationProcessorPath = configurations.annotationProcessor
+    destinationDirectory.set(layout.buildDirectory.dir("classes/java/modern"))
+    options.release.set(16)
+}
+
+tasks.register("compileLegacy", ShadowJar) {
+    archiveClassifier.set("legacy")
+    from(tasks.named("compileLegacyJava"))
     configurations = [project.configurations.shade]
 
     // Remove stuff we don't need from the jar
@@ -62,40 +83,27 @@ shadowJar {
     exclude("lib/s390x*/**")
     exclude("lib/arm*/**")
 
-    setArchiveClassifier('dev-shadow')
     mergeServiceFiles()
+    dependsOn(tasks.named("compileLegacyJava"))
 }
 
-tasks.register("compileLegacy", org.gradle.jvm.tasks.Jar) {
-    setArchiveClassifier("legacy")
-    compileJava.options.release.set(8)
-    from(zipTree(shadowJar.archiveFile))
-    dependsOn(shadowJar)
-
-    doLast {
-        delete(shadowJar.archiveFile)
-    }
-}
-
-tasks.register("compileModern", org.gradle.jvm.tasks.Jar) {
-    preprocess.vars.put("modernjava", "1")
-    compileJava.options.release.set(16)
-    from(sourceSets.main.output)
-    dependsOn(compileJava)
+tasks.register("compileModern", Jar) {
+    from(tasks.named("compileModernJava"))
+    dependsOn(tasks.named("compileModernJava"))
 }
 
 tasks.register("buildAll", DefaultTask) {
-    dependsOn(compileLegacy, compileModern)
+    dependsOn(tasks.named("compileLegacy"), tasks.named("compileModern"))
     group("build")
 }
 
 tasks.register('javadocJar', Jar) {
-    from javadoc
+    from(javadoc)
     setArchiveClassifier('javadoc')
 }
 
 tasks.register('sourcesJar', Jar) {
-    from sourceSets.main.allJava
+    from(sourceSets.main.allJava)
     setArchiveClassifier('sources')
 }
 

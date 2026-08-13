@@ -19,7 +19,7 @@ This library has the same features as the original DLL versions, but with notabl
 - Specify the Activity type (Watching, Playing, Competing, etc)
 - Automatic reconnects when switching user accounts
 - 100% pure java
-- Supports Java 8-21
+- Supports Java 8+
 - Specifically designed for use in Minecraft mods
 - Automatic reconnecting and user switching support
 

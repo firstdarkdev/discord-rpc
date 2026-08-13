@@ -1,3 +1,7 @@
+**1.0.6**
+
+- [BUG] Don't exclude needed metadata from META-INF on legacy jar
+
 **1.0.5**
 
 - [BUG] Fix legacy jar requiring java 16 to work

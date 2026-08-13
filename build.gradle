@@ -68,10 +68,6 @@ tasks.register("compileLegacy", ShadowJar) {
     exclude("**/LICENSE*")
     exclude("**/Log4J*")
     exclude("logback.xml")
-    exclude("META-INF/NOTICE*")
-    exclude("META-INF/maven/**")
-    exclude("META-INF/versions/**")
-    exclude("META-INF/native-image/**")
 
     // Remove unneeded/unsupported platforms
     exclude("lib/*BSD*/**")
